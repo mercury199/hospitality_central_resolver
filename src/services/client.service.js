@@ -4,6 +4,24 @@ const { initClientConfigModel } = require('../models/client-config.model');
 
 const ClientConfig = initClientConfigModel(sequelize);
 
+const normalizeDarkThemeColors = (payload) => {
+  const darkTheme = payload?.data?.dark;
+
+  if (!darkTheme) {
+    return payload;
+  }
+
+  if (darkTheme.background == null) {
+    darkTheme.background = '#000000';
+  }
+
+  if (darkTheme.black == null) {
+    darkTheme.black = '#000000';
+  }
+
+  return payload;
+};
+
 const getAppStylingDetail = async (clientId) => {
   const token = process.env.STRAPI_AUTH_TOKEN;
   console.log("clientId",clientId)
@@ -47,7 +65,7 @@ const getAppStylingDetail = async (clientId) => {
     },
   });
 
-  return response.data;
+  return normalizeDarkThemeColors(response.data);
 };
 
 module.exports = {
