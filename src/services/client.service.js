@@ -1,0 +1,55 @@
+const axios = require('axios');
+const { sequelize } = require('../config/database');
+const { initClientConfigModel } = require('../models/client-config.model');
+
+const ClientConfig = initClientConfigModel(sequelize);
+
+const getAppStylingDetail = async (clientId) => {
+  const token = process.env.STRAPI_AUTH_TOKEN;
+  console.log("clientId",clientId)
+
+  if (!token) {
+    throw new Error('STRAPI_AUTH_TOKEN is not configured');
+  }
+
+  const clientConfig = await ClientConfig.findOne({
+    where: {
+      clientCode: clientId,
+    },
+  });
+
+  if (!clientConfig) {
+    const error = new Error('Client config not found');
+    error.response = {
+      status: 404,
+      data: {
+        message: `No client config found for clientId: ${clientId}`,
+      },
+    };
+    throw error;
+  }
+
+  const endpoint = clientConfig.starpiurl;
+
+  if (!endpoint) {
+    throw new Error('Client strapi url is not configured');
+  }
+
+  const queryParams = new URLSearchParams({
+    populate: '*',
+  });
+  const url = `${endpoint}api/app-styling-detail/?${queryParams.toString()}`;
+  console.log("url====>>>",url);
+
+  const response = await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+module.exports = {
+  getAppStylingDetail,
+};

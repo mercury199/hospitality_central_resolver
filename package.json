@@ -13,11 +13,19 @@
     "form-data": "^4.0.3",
     "luxon": "^3.7.2",
     "node-cron": "^4.2.1",
+    "pg": "^8.20.0",
+    "pg-hstore": "^2.3.4",
     "qrcode": "^1.5.4",
+    "sequelize": "^6.37.8",
     "stream-chat": "^9.27.2"
   },
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
-  "keywords": []
+  "keywords": [],
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "sequelize-cli": "^6.6.5"
+  }
 }
