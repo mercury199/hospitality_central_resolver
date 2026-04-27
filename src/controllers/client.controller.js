@@ -1,4 +1,4 @@
-const { getAppStylingDetail } = require('../services/client.service');
+const { getAppStylingDetail, createClientConfig } = require('../services/client.service');
 
 const fetchAppStylingDetail = async (req, res) => {
   try {
@@ -23,6 +23,43 @@ const fetchAppStylingDetail = async (req, res) => {
   }
 };
 
+const addClientConfig = async (req, res) => {
+  try {
+    console.log("req",req.body);
+    const { clientCode, starpiurl, railwayUrl } = req.body;
+
+    if (!clientCode || !starpiurl || !railwayUrl) {
+      return res.status(400).json({
+        message: 'clientCode, starpiurl and railwayUrl are required',
+      });
+    }
+
+    const result = await createClientConfig({
+      clientCode,
+      starpiurl,
+      railwayUrl,
+    });
+
+    if (result.alreadyExists) {
+      return res.status(409).json({
+        message: 'ClientCode already exists',
+        data: result.data,
+      });
+    }
+
+    return res.status(201).json({
+      message: 'Client config created successfully',
+      data: result.data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Failed to create client config',
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   fetchAppStylingDetail,
+  addClientConfig,
 };

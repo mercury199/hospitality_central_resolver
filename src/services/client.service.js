@@ -68,6 +68,33 @@ const getAppStylingDetail = async (clientId) => {
   return normalizeDarkThemeColors(response.data);
 };
 
+const createClientConfig = async ({ clientCode, starpiurl, railwayUrl }) => {
+  const existingClientConfig = await ClientConfig.findOne({
+    where: {
+      clientCode,
+    },
+  });
+
+  if (existingClientConfig) {
+    return {
+      alreadyExists: true,
+      data: existingClientConfig,
+    };
+  }
+
+  const createdClientConfig = await ClientConfig.create({
+    clientCode,
+    starpiurl,
+    railwayUrl,
+  });
+
+  return {
+    alreadyExists: false,
+    data: createdClientConfig,
+  };
+};
+
 module.exports = {
   getAppStylingDetail,
+  createClientConfig,
 };
