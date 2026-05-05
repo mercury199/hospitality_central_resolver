@@ -91,7 +91,14 @@ const getAppStylingDetail = async (clientId) => {
     },
   });
 
-  return normalizeDarkThemeColors(response.data);
+  const normalizedData = normalizeDarkThemeColors(response.data);
+  
+  // Add the additional fields to the response
+  return {
+    ...normalizedData,
+    railwayUrl: clientConfig.railwayUrl,
+    chatApiKey: clientConfig.chatApiKey
+  };
 };
 
 const createClientConfig = async ({ clientCode, starpiurl, railwayUrl }) => {

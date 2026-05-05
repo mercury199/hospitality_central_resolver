@@ -23,6 +23,10 @@ const initClientConfigModel = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      chatApiKey: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       sequelize,
