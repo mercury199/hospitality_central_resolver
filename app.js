@@ -3,6 +3,7 @@ const path = require('path');
 require('dotenv').config();
 const indexRouter = require('./routes/index');
 const clientRouter = require('./src/routes/client.route');
+const otpRouter = require('./src/routes/otp.route');
 const { connectDB } = require('./src/config/database');
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 // Use the router for handling routes
 app.use('/', indexRouter);
 app.use('/api/client', clientRouter);
+app.use('/api/otp', otpRouter);
 
 // Catch-all route for handling 404 errors
 app.use((req, res, next) => {
