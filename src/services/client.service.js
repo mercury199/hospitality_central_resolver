@@ -72,6 +72,7 @@ const getAppStylingDetail = async (clientId) => {
     };
     throw error;
   }
+  console.log("clientConfig=====",clientConfig)
 
   const endpoint = clientConfig.starpiurl;
 
