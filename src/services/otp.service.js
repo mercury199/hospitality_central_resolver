@@ -3,7 +3,7 @@ const axios = require('axios');
 const { sequelize } = require('../config/database');
 const { initOtpVerificationModel } = require('../models/otp-verification.model');
 const { initClientConfigModel } = require('../models/client-config.model');
-const { buildOtpEmailHtml } = require('../templates/otp-email.template');
+const { buildOtpEmailHtml, buildForgotPasswordOtpEmailHtml } = require('../templates/otp-email.template');
 const { sendOtpEmail } = require('./email.service');
 
 const OtpVerification = initOtpVerificationModel(sequelize);
@@ -174,8 +174,94 @@ const verifyOtp = async ({ email, clientCode, otp }) => {
   };
 };
 
+const requestPasswordResetOtp = async ({ email, clientCode }) => {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedClientCode = clientCode.trim();
+
+  const existingRecord = await OtpVerification.findOne({
+    where: {
+      email: normalizedEmail,
+      clientCode: normalizedClientCode,
+    },
+  });
+
+  if (!existingRecord) {
+    const error = new Error('No user found with this email');
+    error.response = { status: 404, data: { message: error.message } };
+    throw error;
+  }
+
+  const clientConfig = await ClientConfig.findOne({
+    where: {
+      clientCode: normalizedClientCode,
+    },
+  });
+
+  if (!clientConfig) {
+    const error = new Error('Client config not found');
+    error.response = {
+      status: 404,
+      data: {
+        message: `No client config found for clientCode: ${normalizedClientCode}`,
+      },
+    };
+    throw error;
+  }
+
+  const strapiEndpoint = clientConfig.starpiurl;
+
+  if (!strapiEndpoint) {
+    const error = new Error('Client strapi url is not configured');
+    error.response = { status: 500, data: { message: 'Client strapi url is not configured' } };
+    throw error;
+  }
+
+  const token = process.env.STRAPI_AUTH_TOKEN;
+  const queryParams = new URLSearchParams({ populate: '*' });
+  const url = `${strapiEndpoint}api/app-styling-detail/?${queryParams.toString()}`;
+
+  const response = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const urlv2 = response.data.data.logo.formats.large.url;
+
+  const otp = generateOtp();
+  const otpHash = hashOtp(otp);
+  const expiresAt = getExpiryDate();
+
+  await existingRecord.update({
+    otpHash,
+    expiresAt,
+    usedAt: null,
+    attemptCount: 0,
+  });
+
+  const html = buildForgotPasswordOtpEmailHtml({
+    otp,
+    expiresInMinutes: OTP_EXPIRY_MINUTES,
+    urlv2,
+    firstName: existingRecord.firstName,
+  });
+
+  await sendOtpEmail({
+    to: normalizedEmail,
+    subject: 'Your CedoApps password reset code',
+    html,
+  });
+
+  return {
+    id: existingRecord.id,
+    email: existingRecord.email,
+    firstName: existingRecord.firstName,
+    lastName: existingRecord.lastName,
+    clientCode: existingRecord.clientCode,
+    expiresAt: existingRecord.expiresAt,
+  };
+};
+
 module.exports = {
   requestOtp,
   verifyOtp,
+  requestPasswordResetOtp,
   OTP_EXPIRY_MINUTES,
 };
