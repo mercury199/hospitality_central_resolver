@@ -1,4 +1,4 @@
-const { requestOtp, verifyOtp } = require('../services/otp.service');
+const { requestOtp, verifyOtp, requestPasswordResetOtp } = require('../services/otp.service');
 
 const sendOtp = async (req, res) => {
   try {
@@ -68,7 +68,42 @@ const validateOtp = async (req, res) => {
   }
 };
 
+const forgotPasswordOtp = async (req, res) => {
+  try {
+    const { email, clientCode } = req.body;
+
+    if (!email || !clientCode) {
+      return res.status(400).json({
+        message: 'email and clientCode are required',
+      });
+    }
+
+    const result = await requestPasswordResetOtp({ email, clientCode });
+
+    return res.status(200).json({
+      message: 'OTP sent successfully',
+      data: {
+        id: result.id,
+        email: result.email,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        clientCode: result.clientCode,
+        expiresAt: result.expiresAt,
+      },
+    });
+  } catch (error) {
+    const statusCode = error.response?.status || 500;
+    const details = error.response?.data || error.message;
+
+    return res.status(statusCode).json({
+      message: typeof details === 'object' && details.message ? details.message : 'Failed to send OTP',
+      details,
+    });
+  }
+};
+
 module.exports = {
   sendOtp,
   validateOtp,
+  forgotPasswordOtp,
 };
