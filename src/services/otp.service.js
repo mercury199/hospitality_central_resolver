@@ -21,6 +21,11 @@ const generateOtp = () => crypto.randomInt(0, 10 ** OTP_LENGTH).toString().padSt
 const getExpiryDate = () => new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
 const requestOtp = async ({ email, clientCode, firstName, lastName }) => {
+  console.log("email====",email);
+    console.log("clientCode====",clientCode);
+  console.log("firstName====",firstName);
+  console.log("lastName====",lastName);
+
   const normalizedEmail = normalizeEmail(email);
   const normalizedClientCode = clientCode.trim();
 
@@ -42,6 +47,7 @@ const requestOtp = async ({ email, clientCode, firstName, lastName }) => {
   }
 
   const strapiEndpoint = clientConfig.starpiurl;
+  console.log("strapiEndpoint====>>>>",strapiEndpoint);
 
   if (!strapiEndpoint) {
     const error = new Error('Client strapi url is not configured');
@@ -52,11 +58,12 @@ const requestOtp = async ({ email, clientCode, firstName, lastName }) => {
   const token = process.env.STRAPI_AUTH_TOKEN;
   const queryParams = new URLSearchParams({ populate: '*' });
   const url = `${strapiEndpoint}api/app-styling-detail/?${queryParams.toString()}`;
+  console.log("url====",url);
 
   const response=await axios.get(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  // console.log("response=====>>>>>",response.data.data.logo.formats.large.url);
+  console.log("response=====>>>>>",response.data.data.logo.formats.large.url);
   const urlv2=response.data.data.logo.formats.large.url
 
   const otp = generateOtp();

@@ -24,7 +24,15 @@ const initClientConfigModel = (sequelize) => {
         allowNull: false,
       },
       chatApiKey: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      chatApiKeySecret: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      strapiAuthToken: {
+        type: DataTypes.TEXT,
         allowNull: true,
       },
     },

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { sequelize } = require('../config/database');
 const { initClientConfigModel } = require('../models/client-config.model');
+const { encrypt, decrypt } = require('../utils/encryption.util');
 
 const ClientConfig = initClientConfigModel(sequelize);
 
@@ -49,12 +50,7 @@ const randomizeDarkThemeColors = (payload) => {
 };
 
 const getAppStylingDetail = async (clientId) => {
-  const token = process.env.STRAPI_AUTH_TOKEN;
   console.log("clientId",clientId)
-
-  if (!token) {
-    throw new Error('STRAPI_AUTH_TOKEN is not configured');
-  }
 
   const clientConfig = await ClientConfig.findOne({
     where: {
@@ -74,7 +70,16 @@ const getAppStylingDetail = async (clientId) => {
   }
   console.log("clientConfig=====",clientConfig)
 
+  const token = decrypt(clientConfig.strapiAuthToken);
+
+  if (!token) {
+    throw new Error('Client strapi auth token is not configured');
+  }
+
   const endpoint = clientConfig.starpiurl;
+  console.log("endpoint=====",endpoint);
+    console.log("token=====",token);
+
 
   if (!endpoint) {
     throw new Error('Client strapi url is not configured');
@@ -98,11 +103,18 @@ const getAppStylingDetail = async (clientId) => {
   return {
     ...normalizedData,
     railwayUrl: clientConfig.railwayUrl,
-    chatApiKey: clientConfig.chatApiKey
+    chatApiKey: decrypt(clientConfig.chatApiKey),
   };
 };
 
-const createClientConfig = async ({ clientCode, starpiurl, railwayUrl }) => {
+const createClientConfig = async ({
+  clientCode,
+  starpiurl,
+  railwayUrl,
+  chatApiKey,
+  chatApiKeySecret,
+  strapiAuthToken,
+}) => {
   const existingClientConfig = await ClientConfig.findOne({
     where: {
       clientCode,
@@ -120,6 +132,9 @@ const createClientConfig = async ({ clientCode, starpiurl, railwayUrl }) => {
     clientCode,
     starpiurl,
     railwayUrl,
+    chatApiKey: encrypt(chatApiKey),
+    chatApiKeySecret: encrypt(chatApiKeySecret),
+    strapiAuthToken: encrypt(strapiAuthToken),
   });
 
   return {
