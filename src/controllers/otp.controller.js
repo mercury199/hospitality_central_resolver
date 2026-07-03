@@ -3,6 +3,7 @@ const { requestOtp, verifyOtp, requestPasswordResetOtp } = require('../services/
 const sendOtp = async (req, res) => {
   try {
     const { email, clientCode, firstName, lastName } = req.body;
+    
 
     if (!email || !clientCode) {
       return res.status(400).json({

@@ -30,7 +30,7 @@ const fetchAppStylingDetail = async (req, res) => {
 const addClientConfig = async (req, res) => {
   try {
     console.log("req",req.body);
-    const { clientCode, starpiurl, railwayUrl } = req.body;
+    const { clientCode, starpiurl, railwayUrl, chatApiKey, chatApiKeySecret, strapiAuthToken } = req.body;
 
     if (!clientCode || !starpiurl || !railwayUrl) {
       return res.status(400).json({
@@ -42,6 +42,9 @@ const addClientConfig = async (req, res) => {
       clientCode,
       starpiurl,
       railwayUrl,
+      chatApiKey,
+      chatApiKeySecret,
+      strapiAuthToken,
     });
 
     if (result.alreadyExists) {
