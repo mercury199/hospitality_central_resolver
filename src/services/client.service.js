@@ -187,8 +187,38 @@ const getAppStylingDetailV2 = async (clientId) => {
   return randomizeDarkThemeColors(normalizeDarkThemeColors(response.data));
 };
 
+const getClientConfigDetails = async (clientCode) => {
+  const clientConfig = await ClientConfig.findOne({
+    where: {
+      clientCode,
+    },
+  });
+
+  if (!clientConfig) {
+    const error = new Error('Client config not found');
+    error.response = {
+      status: 404,
+      data: {
+        message: `No client config found for clientCode: ${clientCode}`,
+      },
+    };
+    throw error;
+  }
+
+  return {
+    id: clientConfig.id,
+    clientCode: clientConfig.clientCode,
+    starpiurl: clientConfig.starpiurl,
+    railwayUrl: clientConfig.railwayUrl,
+    strapiAuthToken: decrypt(clientConfig.strapiAuthToken),
+    chatApiKey: decrypt(clientConfig.chatApiKey),
+    chatApiKeySecret: decrypt(clientConfig.chatApiKeySecret),
+  };
+};
+
 module.exports = {
   getAppStylingDetail,
   createClientConfig,
   getAppStylingDetailV2,
+  getClientConfigDetails,
 };

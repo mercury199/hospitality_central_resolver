@@ -2,6 +2,7 @@ const {
   getAppStylingDetail,
   createClientConfig,
   getAppStylingDetailV2,
+  getClientConfigDetails,
 } = require('../services/client.service');
 
 const fetchAppStylingDetail = async (req, res) => {
@@ -89,8 +90,36 @@ const fetchAppStylingDetailV2 = async (req, res) => {
   }
 };
 
+const fetchClientConfigDetails = async (req, res) => {
+  try {
+    const { clientCode } = req.query;
+
+    if (!clientCode) {
+      return res.status(400).json({
+        message: 'clientCode query param is required',
+      });
+    }
+
+    const data = await getClientConfigDetails(clientCode);
+
+    return res.status(200).json({
+      message: 'Client config fetched successfully',
+      data,
+    });
+  } catch (error) {
+    const statusCode = error.response?.status || 500;
+    const details = error.response?.data || error.message;
+
+    return res.status(statusCode).json({
+      message: 'Failed to fetch client config details',
+      details,
+    });
+  }
+};
+
 module.exports = {
   fetchAppStylingDetail,
   addClientConfig,
   fetchAppStylingDetailV2,
+  fetchClientConfigDetails,
 };
