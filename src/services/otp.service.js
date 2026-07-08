@@ -231,7 +231,14 @@ const requestPasswordResetOtp = async ({ email, clientCode }) => {
     throw error;
   }
 
-  const token = process.env.STRAPI_AUTH_TOKEN;
+  const token = decrypt(clientConfig.strapiAuthToken);
+
+  if (!token) {
+    const error = new Error('Client strapi auth token is not configured');
+    error.response = { status: 500, data: { message: 'Client strapi auth token is not configured' } };
+    throw error;
+  }
+
   const queryParams = new URLSearchParams({ populate: '*' });
   const url = `${strapiEndpoint}api/app-styling-detail/?${queryParams.toString()}`;
 
