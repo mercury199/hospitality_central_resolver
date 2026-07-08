@@ -5,6 +5,7 @@ const { initOtpVerificationModel } = require('../models/otp-verification.model')
 const { initClientConfigModel } = require('../models/client-config.model');
 const { buildOtpEmailHtml, buildForgotPasswordOtpEmailHtml } = require('../templates/otp-email.template');
 const { sendOtpEmail } = require('./email.service');
+const { decrypt } = require('../utils/encryption.util');
 
 const OtpVerification = initOtpVerificationModel(sequelize);
 const ClientConfig = initClientConfigModel(sequelize);
@@ -55,7 +56,14 @@ const requestOtp = async ({ email, clientCode, firstName, lastName }) => {
     throw error;
   }
 
-  const token = process.env.STRAPI_AUTH_TOKEN;
+  const token = decrypt(clientConfig.strapiAuthToken);
+
+  if (!token) {
+    const error = new Error('Client strapi auth token is not configured');
+    error.response = { status: 500, data: { message: 'Client strapi auth token is not configured' } };
+    throw error;
+  }
+
   const queryParams = new URLSearchParams({ populate: '*' });
   const url = `${strapiEndpoint}api/app-styling-detail/?${queryParams.toString()}`;
   console.log("url====",url);
