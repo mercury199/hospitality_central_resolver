@@ -373,10 +373,76 @@ const requestChangeEmailOtp = async ({ clientCode, oldEmail, newEmail }) => {
   };
 };
 
+const verifyEmailChangeOtp = async ({ clientCode, oldEmail, newEmail, otp }) => {
+  const normalizedClientCode = clientCode.trim();
+  const normalizedOldEmail = normalizeEmail(oldEmail);
+  const normalizedNewEmail = normalizeEmail(newEmail);
+  const normalizedOtp = otp.trim();
+
+  const userRecord = await OtpVerification.findOne({
+    where: {
+      email: normalizedOldEmail,
+      clientCode: normalizedClientCode,
+    },
+  });
+
+  if (!userRecord) {
+    const error = new Error('No verification record found for this email and client.');
+    error.response = { status: 404, data: { message: error.message } };
+    throw error;
+  }
+
+  if (new Date() > userRecord.expiresAt) {
+    const error = new Error('This OTP has expired. Please request a new one.');
+    error.response = { status: 400, data: { message: error.message } };
+    throw error;
+  }
+
+  const otpHash = hashOtp(normalizedOtp);
+
+  if (otpHash !== userRecord.otpHash) {
+    await userRecord.update({
+      attemptCount: userRecord.attemptCount + 1,
+    });
+
+    const error = new Error('The OTP you entered is incorrect. Please check and try again.');
+    error.response = { status: 400, data: { message: error.message } };
+    throw error;
+  }
+
+  const existingEmailRecord = await OtpVerification.findOne({
+    where: {
+      email: normalizedNewEmail,
+      clientCode: normalizedClientCode,
+    },
+  });
+
+  if (existingEmailRecord) {
+    const error = new Error('This email address is already in use by another user.');
+    error.response = { status: 409, data: { message: error.message } };
+    throw error;
+  }
+
+  await userRecord.update({
+    email: normalizedNewEmail,
+    isvalidate: true,
+    usedAt: new Date(),
+  });
+
+  return {
+    id: userRecord.id,
+    email: userRecord.email,
+    firstName: userRecord.firstName,
+    lastName: userRecord.lastName,
+    clientCode: userRecord.clientCode,
+  };
+};
+
 module.exports = {
   requestOtp,
   verifyOtp,
   requestPasswordResetOtp,
   requestChangeEmailOtp,
+  verifyEmailChangeOtp,
   OTP_EXPIRY_MINUTES,
 };
