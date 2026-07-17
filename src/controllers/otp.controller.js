@@ -1,4 +1,4 @@
-const { requestOtp, verifyOtp, requestPasswordResetOtp } = require('../services/otp.service');
+const { requestOtp, verifyOtp, requestPasswordResetOtp, requestChangeEmailOtp } = require('../services/otp.service');
 
 const sendOtp = async (req, res) => {
   try {
@@ -103,8 +103,42 @@ const forgotPasswordOtp = async (req, res) => {
   }
 };
 
+const changeEmailOtp = async (req, res) => {
+  try {
+    const { clientCode, oldEmail, newEmail } = req.body;
+
+    if (!clientCode || !oldEmail || !newEmail) {
+      return res.status(400).json({
+        message: 'clientCode, oldEmail and newEmail are required',
+      });
+    }
+
+    const result = await requestChangeEmailOtp({ clientCode, oldEmail, newEmail });
+
+    return res.status(200).json({
+      message: 'Email change confirmation sent successfully',
+      data: {
+        id: result.id,
+        oldEmail: result.oldEmail,
+        newEmail: result.newEmail,
+        clientCode: result.clientCode,
+        expiresAt: result.expiresAt,
+      },
+    });
+  } catch (error) {
+    const statusCode = error.response?.status || 500;
+    const details = error.response?.data || error.message;
+
+    return res.status(statusCode).json({
+      message: typeof details === 'object' && details.message ? details.message : 'Failed to send email change confirmation',
+      details,
+    });
+  }
+};
+
 module.exports = {
   sendOtp,
   validateOtp,
   forgotPasswordOtp,
+  changeEmailOtp,
 };

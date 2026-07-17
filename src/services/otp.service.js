@@ -3,7 +3,7 @@ const axios = require('axios');
 const { sequelize } = require('../config/database');
 const { initOtpVerificationModel } = require('../models/otp-verification.model');
 const { initClientConfigModel } = require('../models/client-config.model');
-const { buildOtpEmailHtml, buildForgotPasswordOtpEmailHtml } = require('../templates/otp-email.template');
+const { buildOtpEmailHtml, buildForgotPasswordOtpEmailHtml, buildChangeEmailOtpEmailHtml } = require('../templates/otp-email.template');
 const { sendOtpEmail } = require('./email.service');
 const { decrypt } = require('../utils/encryption.util');
 
@@ -281,9 +281,102 @@ const requestPasswordResetOtp = async ({ email, clientCode }) => {
   };
 };
 
+const requestChangeEmailOtp = async ({ clientCode, oldEmail, newEmail }) => {
+  const normalizedClientCode = clientCode.trim();
+  const normalizedOldEmail = normalizeEmail(oldEmail);
+  const normalizedNewEmail = normalizeEmail(newEmail);
+
+  const userRecord = await OtpVerification.findOne({
+    where: {
+      email: normalizedOldEmail,
+      clientCode: normalizedClientCode,
+    },
+  });
+
+  if (!userRecord) {
+    const error = new Error('No user found with this email');
+    error.response = { status: 404, data: { message: error.message } };
+    throw error;
+  }
+
+  const clientConfig = await ClientConfig.findOne({
+    where: {
+      clientCode: normalizedClientCode,
+    },
+  });
+
+  if (!clientConfig) {
+    const error = new Error('Client config not found');
+    error.response = {
+      status: 404,
+      data: {
+        message: `No client config found for clientCode: ${normalizedClientCode}`,
+      },
+    };
+    throw error;
+  }
+
+  const strapiEndpoint = clientConfig.starpiurl;
+
+  if (!strapiEndpoint) {
+    const error = new Error('Client strapi url is not configured');
+    error.response = { status: 500, data: { message: 'Client strapi url is not configured' } };
+    throw error;
+  }
+
+  const token = decrypt(clientConfig.strapiAuthToken);
+
+  if (!token) {
+    const error = new Error('Client strapi auth token is not configured');
+    error.response = { status: 500, data: { message: 'Client strapi auth token is not configured' } };
+    throw error;
+  }
+
+  const queryParams = new URLSearchParams({ populate: '*' });
+  const url = `${strapiEndpoint}api/app-styling-detail/?${queryParams.toString()}`;
+
+  const response = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const urlv2 = response.data.data.logo.formats.large.url;
+
+  const otp = generateOtp();
+  const otpHash = hashOtp(otp);
+  const expiresAt = getExpiryDate();
+
+  await userRecord.update({
+    otpHash,
+    expiresAt,
+    usedAt: null,
+    attemptCount: 0,
+  });
+
+  const html = buildChangeEmailOtpEmailHtml({
+    otp,
+    expiresInMinutes: OTP_EXPIRY_MINUTES,
+    urlv2,
+    firstName: userRecord.firstName,
+  });
+
+  await sendOtpEmail({
+    to: normalizedOldEmail,
+    subject: 'Confirm Your Email Change - CedoApps',
+    html,
+  });
+
+  return {
+    id: userRecord.id,
+    oldEmail: userRecord.email,
+    newEmail: normalizedNewEmail,
+    clientCode: userRecord.clientCode,
+    expiresAt: userRecord.expiresAt,
+  };
+};
+
 module.exports = {
   requestOtp,
   verifyOtp,
   requestPasswordResetOtp,
+  requestChangeEmailOtp,
   OTP_EXPIRY_MINUTES,
 };
