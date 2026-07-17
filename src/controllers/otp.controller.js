@@ -1,4 +1,4 @@
-const { requestOtp, verifyOtp, requestPasswordResetOtp, requestChangeEmailOtp } = require('../services/otp.service');
+const { requestOtp, verifyOtp, requestPasswordResetOtp, requestChangeEmailOtp, verifyEmailChangeOtp } = require('../services/otp.service');
 
 const sendOtp = async (req, res) => {
   try {
@@ -136,9 +136,43 @@ const changeEmailOtp = async (req, res) => {
   }
 };
 
+const verifyEmailChange = async (req, res) => {
+  try {
+    const { clientCode, oldEmail, newEmail, otp } = req.body;
+
+    if (!clientCode || !oldEmail || !newEmail || !otp) {
+      return res.status(400).json({
+        message: 'clientCode, oldEmail, newEmail and otp are required',
+      });
+    }
+
+    const result = await verifyEmailChangeOtp({ clientCode, oldEmail, newEmail, otp });
+
+    return res.status(200).json({
+      message: 'Email changed successfully',
+      data: {
+        id: result.id,
+        email: result.email,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        clientCode: result.clientCode,
+      },
+    });
+  } catch (error) {
+    const statusCode = error.response?.status || 500;
+    const details = error.response?.data || error.message;
+
+    return res.status(statusCode).json({
+      message: typeof details === 'object' && details.message ? details.message : 'Failed to verify and change email',
+      details,
+    });
+  }
+};
+
 module.exports = {
   sendOtp,
   validateOtp,
   forgotPasswordOtp,
   changeEmailOtp,
+  verifyEmailChange,
 };
